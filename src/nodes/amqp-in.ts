@@ -2,9 +2,14 @@ import { NodeRedApp, EditorNodeProperties } from 'node-red'
 import { NODE_STATUS } from '../constants'
 import { ErrorType, NodeType } from '../types'
 import Amqp from '../Amqp'
+import { MessageProperties } from 'amqplib'
 
 module.exports = function (RED: NodeRedApp): void {
-  function AmqpIn(config: EditorNodeProperties): void {
+  function AmqpIn(config: EditorNodeProperties & {
+    exchangeRoutingKey: string
+    exchangeRoutingKeyType: string
+    amqpProperties: string
+  }): void {
     let reconnectTimeout: NodeJS.Timeout
     RED.events.once('flows:stopped', () => {
       clearTimeout(reconnectTimeout)
@@ -31,11 +36,87 @@ module.exports = function (RED: NodeRedApp): void {
 
       try {
         const connection = await amqp.connect()
+        console.log(config.exchangeRoutingKey);
+        console.log(config.exchangeRoutingKeyType);
+
+        // switch (config.exchangeRoutingKeyType) {
+        //   case 'env':{
+        //     amqp.setRoutingKey(process.env[config.exchangeRoutingKey]);
+        //     break;
+        //   }
+        // }
 
         // istanbul ignore else
         if (connection) {
           await amqp.initialize()
           await amqp.consume()
+
+          
+          self.on('input', async (msg, _, done) => {
+            const { payload, routingKey, properties: msgProperties } = msg
+            const {
+              exchangeRoutingKey,
+              exchangeRoutingKeyType,
+              amqpProperties,
+            } = config
+
+            // message properties override config properties
+            let properties: MessageProperties
+            try {
+              properties = {
+                ...JSON.parse(amqpProperties),
+                ...msgProperties,
+              }
+            } catch (e) {
+              properties = msgProperties
+            }
+
+            switch (exchangeRoutingKeyType) {
+              case 'env': {
+                amqp.setRoutingKey(process.env[config.exchangeRoutingKey]);
+                break;
+              }
+              case 'msg':
+              case 'flow':
+              case 'global':
+                amqp.setRoutingKey(
+                  RED.util.evaluateNodeProperty(
+                    exchangeRoutingKey,
+                    exchangeRoutingKeyType,
+                    self,
+                    msg,
+                  ),
+                )
+                break
+              case 'jsonata':
+                amqp.setRoutingKey(
+                  RED.util.evaluateJSONataExpression(
+                    RED.util.prepareJSONataExpression(exchangeRoutingKey, self),
+                    msg,
+                  ),
+                )
+                break
+              case 'str':
+              default:
+                if (routingKey) {
+                  // if incoming payload contains a routingKey value
+                  // override our string value with it.
+
+                  // Superfluous (and possibly confusing) at this point
+                  // but keeping it to retain backwards compatibility
+                  amqp.setRoutingKey(routingKey)
+                }
+                break
+            }
+
+            if (!!properties?.headers?.doNotStringifyPayload) {
+              amqp.publish(payload, properties)
+            } else {
+              amqp.publish(JSON.stringify(payload), properties)
+            }
+
+            done && done()
+          })
 
           // When the node is re-deployed
           self.once('close', async (done: () => void): Promise<void> => {
