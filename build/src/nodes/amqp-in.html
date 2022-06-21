@@ -8,6 +8,7 @@
       prefetch: { value: 0 },
       noAck: { value: true },
       exchangeName: { value: '' },
+      exchangeNameKeyType: { value: 'str' },
       exchangeType: { value: 'topic' },
       exchangeRoutingKey: { value: '' },
       exchangeRoutingKeyType: { value: 'str' },
@@ -50,13 +51,22 @@
         } else {
           $('.headers-form-input').hide()
         }
+        $('.exchange-name-form-input').show()
       }),
-
+    
       $("#node-input-exchangeRoutingKey").typedInput({
         default: "str",
         types: ["str","env"],
         typeField: $("#node-input-exchangeRoutingKeyType")
       })
+
+      $("#node-input-exchangeName").typedInput({
+        default: "str",
+        types: ["str","env"],
+        typeField: $("#node-input-exchangeNameKeyType")
+      })
+
+      
 
     },
   })
@@ -104,10 +114,16 @@
       <option value="headers">Headers</option>
     </select>
   </div>
+  <div class="form-row wide-label-amqp-in exchange-name-form-input">
+    <label for="node-input-exchangeName"><i class="fa fa-filter"></i>&nbsp;&nbsp;Exchange Name</label>
+    <input type="text" id="node-input-exchangeName">
+    <input type="hidden" id="node-input-exchangeNameKeyType" />
+  </div>
+  <!---
   <div class="form-row wide-label-amqp-in">
     <label for="node-input-exchangeName" style="width: 30%"><i class="fa fa-tag"></i>&nbsp;&nbsp;Exchange Name</label>
     <input type="text" id="node-input-exchangeName" placeholder="Leave blank for the default exchange">
-  </div>
+  </div> -->
   <div class="form-row wide-label-amqp-in routing-key-form-input">
     <label for="node-input-exchangeRoutingKey"><i class="fa fa-filter"></i>&nbsp;&nbsp;Routing Key</label>
     <input type="text" id="node-input-exchangeRoutingKey">

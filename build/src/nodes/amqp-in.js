@@ -9,6 +9,7 @@ module.exports = function (RED) {
         RED.events.once('flows:stopped', () => {
             clearTimeout(reconnectTimeout);
         });
+        let node = this;
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         RED.nodes.createNode(this, config);
@@ -24,7 +25,7 @@ module.exports = function (RED) {
                     catch (e) {
                         await reconnect();
                     }
-                }, 2000);
+                }, 10000);
             });
             try {
                 const connection = await amqp.connect();
@@ -37,7 +38,7 @@ module.exports = function (RED) {
                     self.on('input', async (msg, _, done) => {
                         var _a;
                         const { payload, routingKey, properties: msgProperties } = msg;
-                        const { exchangeRoutingKey, exchangeRoutingKeyType, amqpProperties, } = config;
+                        const { exchangeRoutingKey, exchangeRoutingKeyType, exchangeName, exchangeNameKeyType, amqpProperties, } = config;
                         // message properties override config properties
                         let properties;
                         try {
@@ -70,6 +71,27 @@ module.exports = function (RED) {
                                 }
                                 break;
                         }
+                        switch (exchangeNameKeyType) {
+                            case 'env': {
+                                amqp.setExchangeName(process.env[config.exchangeName]);
+                                break;
+                            }
+                            case 'msg':
+                            case 'flow':
+                            case 'global':
+                                amqp.setExchangeName(RED.util.evaluateNodeProperty(exchangeName, exchangeNameKeyType, self, msg));
+                                break;
+                            case 'str':
+                            default:
+                                if (exchangeName) {
+                                    // if incoming payload contains a routingKey value
+                                    // override our string value with it.
+                                    // Superfluous (and possibly confusing) at this point
+                                    // but keeping it to retain backwards compatibility
+                                    amqp.setExchangeName(exchangeName);
+                                }
+                                break;
+                        }
                         if (!!((_a = properties === null || properties === void 0 ? void 0 : properties.headers) === null || _a === void 0 ? void 0 : _a.doNotStringifyPayload)) {
                             amqp.publish(payload, properties);
                         }
@@ -91,6 +113,8 @@ module.exports = function (RED) {
                 }
             }
             catch (e) {
+                console.log("Error", e);
+                node.error(e, "msg");
                 if (e.code === types_1.ErrorType.ConnectionRefused || e.isOperational) {
                     await reconnect();
                 }

@@ -71,11 +71,13 @@ export default class Amqp {
     this.connection = await connect(brokerUrl, { heartbeat: 2 })
 
     /* istanbul ignore next */
-    this.connection.on('error', (): void => {
+    this.connection.on('error', (): void =>  {
+      console.log("error aqui");
       // If we don't set up this empty event handler
       // node-red crashes with an Unhandled Exception
       // This method allows the exception to be caught
       // by the try/catch blocks in the amqp nodes
+      throw new Error(`Unable to determine the type or its properties from`);
     })
 
     /* istanbul ignore next */
@@ -109,12 +111,17 @@ export default class Amqp {
         { noAck },
       )
     } catch (e) {
+      console.log(e);
       this.node.error(`Could not consume message: ${e}`)
     }
   }
 
   public setRoutingKey(newRoutingKey: string): void {
     this.config.exchange.routingKey = newRoutingKey
+  }
+
+  public setExchangeName(newExchangeName: string): void {
+    this.config.exchange.name = newExchangeName;
   }
 
   public ack(msg: AssembledMessage): void {
