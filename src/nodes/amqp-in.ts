@@ -39,13 +39,6 @@ module.exports = function (RED: NodeRedApp): void {
         console.log(config.exchangeRoutingKey);
         console.log(config.exchangeRoutingKeyType);
 
-        // switch (config.exchangeRoutingKeyType) {
-        //   case 'env':{
-        //     amqp.setRoutingKey(process.env[config.exchangeRoutingKey]);
-        //     break;
-        //   }
-        // }
-
         // istanbul ignore else
         if (connection) {
           await amqp.initialize()
