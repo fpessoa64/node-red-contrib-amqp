@@ -113,8 +113,8 @@ module.exports = function (RED) {
                 }
             }
             catch (e) {
-                console.log("Error", e);
-                node.error(e, "msg");
+                console.error("Error", e);
+                node.error(e);
                 if (e.code === types_1.ErrorType.ConnectionRefused || e.isOperational) {
                     await reconnect();
                 }

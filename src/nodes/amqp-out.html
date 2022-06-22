@@ -6,6 +6,7 @@
       name: { value: '' },
       broker: { value: '', type: 'amqp-broker' },
       exchangeName: { value: '' },
+      exchangeNameKeyType: { value: 'str' },
       exchangeType: { value: 'topic' },
       exchangeRoutingKey: { value: '' },
       exchangeRoutingKeyType: { value: 'str' },
@@ -34,6 +35,11 @@
         default: "str",
         types: ["str", "msg", "flow", "global", "jsonata","env"],
         typeField: $("#node-input-exchangeRoutingKeyType")
+      })
+      $("#node-input-exchangeName").typedInput({
+        default: "str",
+        types: ["str","msg","flow","global","env"],
+        typeField: $("#node-input-exchangeNameKeyType")
       })
 
       $('#node-input-amqpProperties').typedInput({
@@ -123,9 +129,15 @@
     Add key/value pairs to a `headers` field in the AMQP Properties field below
   </div>
   <div class="form-row wide-label-amqp-out">
+    <label for="node-input-exchangeName"><i class="fa fa-filter"></i>&nbsp;&nbsp;Exchange Name</label>
+    <input type="text" id="node-input-exchangeName">
+    <input type="hidden" id="node-input-exchangeNameKeyType" />
+  </div>
+  <!---
+  <div class="form-row wide-label-amqp-out">
     <label for="node-input-exchangeName"><i class="fa fa-tag"></i>&nbsp;&nbsp;Exchange Name</label>
     <input type="text" class="simple-input" id="node-input-exchangeName" placeholder="Leave blank for the default exchange">
-  </div>
+  </div>-->
   <div class="form-row wide-label-amqp-out routing-key-form-input">
     <label for="node-input-exchangeRoutingKey"><i class="fa fa-filter"></i>&nbsp;&nbsp;Routing Key</label>
     <input type="text" id="node-input-exchangeRoutingKey">

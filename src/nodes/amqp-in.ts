@@ -164,8 +164,8 @@ module.exports = function (RED: NodeRedApp): void {
           self.status(NODE_STATUS.Connected)
         }
       } catch (e) {
-        console.log("Error",e);
-        node.error(e, "msg");
+        console.error("Error",e);
+        node.error(e);
       
         if (e.code === ErrorType.ConnectionRefused || e.isOperational) {
           await reconnect()
