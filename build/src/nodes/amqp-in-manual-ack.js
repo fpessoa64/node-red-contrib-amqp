@@ -24,8 +24,9 @@ module.exports = function (RED) {
                     catch (e) {
                         await reconnect();
                     }
-                }, 2000);
+                }, 10000);
             });
+            let node = this;
             try {
                 const connection = await amqp.connect();
                 // istanbul ignore else
@@ -33,6 +34,53 @@ module.exports = function (RED) {
                     await amqp.initialize();
                     await amqp.consume();
                     self.on('input', async (msg, send, done) => {
+                        const { payload, routingKey, properties: msgProperties } = msg;
+                        const { exchangeRoutingKey, exchangeRoutingKeyType, exchangeName, exchangeNameKeyType, amqpProperties, } = config;
+                        switch (exchangeRoutingKeyType) {
+                            case 'env': {
+                                amqp.setRoutingKey(process.env[config.exchangeRoutingKey]);
+                                break;
+                            }
+                            case 'msg':
+                            case 'flow':
+                            case 'global':
+                                amqp.setRoutingKey(RED.util.evaluateNodeProperty(exchangeRoutingKey, exchangeRoutingKeyType, self, msg));
+                                break;
+                            case 'jsonata':
+                                amqp.setRoutingKey(RED.util.evaluateJSONataExpression(RED.util.prepareJSONataExpression(exchangeRoutingKey, self), msg));
+                                break;
+                            case 'str':
+                            default:
+                                if (routingKey) {
+                                    // if incoming payload contains a routingKey value
+                                    // override our string value with it.
+                                    // Superfluous (and possibly confusing) at this point
+                                    // but keeping it to retain backwards compatibility
+                                    amqp.setRoutingKey(routingKey);
+                                }
+                                break;
+                        }
+                        switch (exchangeNameKeyType) {
+                            case 'env': {
+                                amqp.setExchangeName(process.env[config.exchangeName]);
+                                break;
+                            }
+                            case 'msg':
+                            case 'flow':
+                            case 'global':
+                                amqp.setExchangeName(RED.util.evaluateNodeProperty(exchangeName, exchangeNameKeyType, self, msg));
+                                break;
+                            case 'str':
+                            default:
+                                if (exchangeName) {
+                                    // if incoming payload contains a routingKey value
+                                    // override our string value with it.
+                                    // Superfluous (and possibly confusing) at this point
+                                    // but keeping it to retain backwards compatibility
+                                    amqp.setExchangeName(exchangeName);
+                                }
+                                break;
+                        }
                         if (msg.manualAck) {
                             const ackMode = msg.manualAck.ackMode;
                             switch (ackMode) {
@@ -73,6 +121,8 @@ module.exports = function (RED) {
                 }
             }
             catch (e) {
+                console.error("Error", e);
+                node.error(e);
                 if (e.code === types_1.ErrorType.ConnectionRefused || e.isOperational) {
                     await reconnect();
                 }
