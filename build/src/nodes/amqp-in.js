@@ -39,6 +39,7 @@ module.exports = function (RED) {
                         var _a;
                         const { payload, routingKey, properties: msgProperties } = msg;
                         const { exchangeRoutingKey, exchangeRoutingKeyType, exchangeName, exchangeNameKeyType, amqpProperties, } = config;
+                        console.log(msg);
                         // message properties override config properties
                         let properties;
                         try {
@@ -114,7 +115,28 @@ module.exports = function (RED) {
             }
             catch (e) {
                 console.error("Error", e);
-                node.error(e);
+                //node.error(e);
+                if (!self.msg) {
+                    self.msg = { error: e };
+                }
+                else {
+                    self.msg["error"] = e;
+                }
+                console.log(self.msg);
+                node.error([self.msg]);
+                //node.processError(e, self.msg);
+                self.msg.error = {
+                    message: e.message,
+                    details: e.message,
+                    name: e.name,
+                    number: e.number,
+                    toString: function () {
+                        return this.message;
+                    }
+                };
+                node.error(self.msg.error, self.msg);
+                node.log(e);
+                node.send(self.msg);
                 if (e.code === types_1.ErrorType.ConnectionRefused || e.isOperational) {
                     await reconnect();
                 }

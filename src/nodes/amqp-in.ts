@@ -3,6 +3,7 @@ import { NODE_STATUS } from '../constants'
 import { ErrorType, NodeType } from '../types'
 import Amqp from '../Amqp'
 import { MessageProperties } from 'amqplib'
+import { Console } from 'console'
 
 module.exports = function (RED: NodeRedApp): void {
   function AmqpIn(config: EditorNodeProperties & {
@@ -58,7 +59,7 @@ module.exports = function (RED: NodeRedApp): void {
               amqpProperties,
             } = config
 
-         
+            console.log(msg);
 
             // message properties override config properties
             let properties: MessageProperties
@@ -165,8 +166,32 @@ module.exports = function (RED: NodeRedApp): void {
         }
       } catch (e) {
         console.error("Error",e);
-        node.error(e);
-      
+        //node.error(e);
+       
+        if(!self.msg) {
+          self.msg = {error: e}
+        }else {
+          self.msg["error"] = e;
+        }
+        console.log(self.msg);
+        node.error([self.msg]);
+        //node.processError(e, self.msg);
+
+        self.msg.error = {
+
+          message: e.message,
+          details:e.message,
+          name: e.name,
+          number: e.number,
+         
+          toString: function () {
+              return this.message;
+          }
+        };
+        node.error(self.msg.error, self.msg);
+        node.log(e);
+        node.send(self.msg);
+
         if (e.code === ErrorType.ConnectionRefused || e.isOperational) {
           await reconnect()
         } else if (e.code === ErrorType.InvalidLogin) {
